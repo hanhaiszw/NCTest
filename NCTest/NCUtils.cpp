@@ -6,8 +6,10 @@
  */
 #include "stdafx.h"
 #include "NCUtils.h"
+#include <time.h>
+#include <stdlib.h>
 
-
+#define random(x) (rand()%x)
 // 有限域运算库
 GF NCUtils::gf;
 
@@ -233,6 +235,60 @@ int NCUtils::getRank(byte** matrix, int nRow, int nCol) {
     delete[] M;
 
     return nRank;
+}
+
+vector<vector<byte>> NCUtils::generateRandMatrix(int row, int col)
+{
+	
+	vector<vector<byte>> result(row);
+	for (auto& v : result) {
+		v.resize(col);
+	}
+	
+	// 为了防止获取随机数过快，出现种子一样的情况
+	static int old_seed = 0;
+	int seed = time(nullptr);
+	if (seed <= old_seed) {
+		seed = old_seed + 1;
+	}
+	old_seed = seed;
+
+	srand(seed);
+	for (int i = 0; i < row; i++) {
+		for (int j = 0; j < col; j++) {
+			result[i][j] = random(256);
+		}
+	}
+
+	return result;
+}
+
+int NCUtils::getRank(vector<vector<byte>> matrix)
+{
+	int row = matrix.size();
+	if (row == 0) {
+		return 0;
+	}
+	int col = matrix[0].size();
+	byte** mat = new byte*[row];
+	for (int i = 0; i < row; i++) {
+		mat[i] = new byte[col];
+	}
+
+	for (int i = 0; i < row; i++) {
+		for (int j = 0; j < col; j++) {
+			mat[i][j] = matrix[i][j];
+		}
+	}
+	int rank = getRank(mat, row, col);
+
+	// 释放内存
+	for (int i = 0; i < row; i++) {
+		delete[] mat[i];
+	}
+	delete mat;
+
+	return rank;
 }
 
 
