@@ -13,6 +13,7 @@
 // 有限域运算库
 GF NCUtils::gf;
 
+
 byte** NCUtils::multiply(byte** matrix1, int row1, int col1, byte** matrix2,
         int row2, int col2) {
     if (col1 != row2) {
@@ -36,118 +37,130 @@ byte** NCUtils::multiply(byte** matrix1, int row1, int col1, byte** matrix2,
     return result;
 }
 
+
+
 byte** NCUtils::inverse(byte** matrix, int nK) {
     //先计算矩阵的秩  不是满秩不能求秩
     int rank = getRank(matrix, nK, nK);
     if (rank != nK) {
         return NULL;
     }
-    int k = nK;
-    int nCol = nK;
-
-    unsigned int **M = new unsigned int *[k];
-    for (int i = 0; i < k; ++i) {
-        M[i] = new unsigned int[k];
-    }
-    for (int i = 0; i < k; i++) {
-        for (int j = 0; j < k; j++) {
-            M[i][j] = matrix[i][j];  // Copy the coefficient to M.
-        }
-    }
-
-	/*
-    //unsigned int IM[k][k];
-    unsigned int **IM = new unsigned int *[k];
-    for (int i = 0; i < k; ++i) {
-        IM[i] = new unsigned int[k];
-    }*/
-	byte **IM = new byte*[k];
-	for (int i = 0; i < k; ++i) {
-		IM[i] = new byte[k];
+   
+	/************************************************************************/
+	/* Start to get the inverse matrix!                                     */
+	/************************************************************************/
+	int **N = new int*[nK];
+	for (int i = 0; i < nK; i++)
+	{
+		N[i] = new int[2 * nK];
 	}
 
-    // Init
-    for (int i = 0; i < k; i++) {
-        for (int j = 0; j < k; j++) {
-            if (i == j) {
-                IM[i][j] = 1;
-            } else {
-                IM[i][j] = 0;
-            }
-        }
-    }
-    /************************************************************************/
-    /* Step 1. Change to a lower triangle matrix.                           */
-    /************************************************************************/
-    for (int i = 0; i < nCol; i++) {
-        for (int j = i + 1; j < nCol; j++) {
-            // Now, the main element must be nonsingular.
-            GFType temp = gf.div(M[j][i], M[i][i]);
+	// 一半写入原矩阵   一半写入单位矩阵
+	for (int i = 0; i < nK; i++)
+	{
+		for (int j = 0; j < nK; j++)
+		{
+			N[i][j] = matrix[i][j];
+		}
 
-            for (int z = 0; z < nCol; z++) {
-                M[j][z] = gf.add(M[j][z], gf.mul(temp, M[i][z]));
-                IM[j][z] = gf.add(IM[j][z], gf.mul(temp, IM[i][z]));
-            }
-        }
-    }
-    /************************************************************************/
-    /* Step 2. Only the elements on the diagonal are non-zero.                  */
-    /************************************************************************/
-    for (int i = 1; i < nCol; i++) {
-        for (int j = 0; j < i; j++) {
-            GFType temp = gf.div(M[j][i], M[i][i]);
-            for (int z = 0; z < nCol; z++) {
-                M[j][z] = gf.add(M[j][z], gf.mul(temp, M[i][z]));
-                IM[j][z] = gf.add(IM[j][z], gf.mul(temp, IM[i][z]));
-            }
-        }
-    }
-    /************************************************************************/
-    /* Step 3. The elements on the diagonal are 1.                  */
-    /************************************************************************/
-    for (int i = 0; i < nCol; i++) {
-        if (M[i][i] != 1) {
-            GFType temp = M[i][i];
-            for (int z = 0; z < nCol; z++) {
-                M[i][z] = gf.div(M[i][z], temp);
-                IM[i][z] = gf.div(IM[i][z], temp);
-            }
-        }
-    }
-    
-	/*
-	// 可以直接返回IM
-	// 为了保证通用性，这里转化为byte
-	// 转化结果为byte
-    byte** result = new byte*[nK];
-    for (int i = 0; i < nK; ++i) {
-        result[i] = new byte[nK];
-    }
-    for (int i = 0; i < nK; ++i) {
-        for (int j = 0; j < nK; ++j) {
-            result[i][j] = (byte) IM[i][j];
-        }
-    }
-	*/
 
-    //释放数组
-    for (int i = 0; i < k; ++i) {
-        delete[] M[i];
-        //delete[] IM[i];
-    }
-    delete[] M;
-    //delete[] IM;
-    //return result;
-	return IM;
+		for (int j = nK; j < 2 * nK; j++) {
+			if (i == j - nK) {
+				N[i][j] = 1;
+			}
+			else {
+				N[i][j] = 0;
+			}
+		}
+	}
+
+	/************************************************************************/
+	/* Step 1. Change to a lower triangle matrix.                           */
+	/************************************************************************/
+	for (int i = 0; i < nK; i++)
+	{
+		if (N[i][i] == 0) {
+			// recode this line 
+			// exchange
+			for (int z = i + 1; z < nK; z++) {
+				if (N[z][i] != 0) {
+					for (int x = 0; x < 2 * nK; x++) {
+						int temp = N[i][x];
+						N[i][x] = N[z][x];
+						N[z][x] = temp;
+					}
+					break;
+				}
+			}
+		}
+
+		for (int j = i + 1; j < nK; j++) {
+			// Now, the main element must be nonsingular.
+			GFType temp = gf.div(N[j][i], N[i][i]);
+			for (int z = 0; z < 2 * nK; z++) {
+				N[j][z] = gf.add(N[j][z], gf.mul(temp, N[i][z]));
+			}
+		}
+
+	}
+
+
+
+	/************************************************************************/
+	/* Step 2. Only the elements on the diagonal are non-zero.                  */
+	/************************************************************************/
+	for (int i = 1; i < nK; i++)
+	{
+		for (int k = 0; k < i; k++) {
+			GFType temp = gf.div(N[k][i], N[i][i]);
+			for (int z = 0; z < 2 * nK; z++) {
+				N[k][z] = gf.add(N[k][z], gf.mul(temp, N[i][z]));
+			}
+		}
+	}
+
+	/************************************************************************/
+	/* Step 3. The elements on the diagonal are 1.                  */
+	/************************************************************************/
+	for (int i = 0; i < nK; i++) {
+		if (N[i][i] != 1) {
+			GFType temp = N[i][i];
+			for (int z = 0; z < 2 * nK; z++) {
+				N[i][z] = gf.div(N[i][z], temp);
+			}
+		}
+	}
+
+
+	/************************************************************************/
+	/* Get the new matrix.                                                  */
+	/************************************************************************/
+	byte** result = new byte*[nK];
+	for (int i = 0; i < nK; i++) {
+		result[i] = new byte[nK];
+	}
+	for (int i = 0; i < nK; i++) {
+		for (int j = 0; j < nK; j++) {
+			result[i][j] = (byte)N[i][j + nK];
+		}
+	}
+
+	for (int i = 0; i < nK; i++) {
+		delete[] N[i];
+	}
+	delete[] N;
+
+	return result;
 }
 
+// 不能使用于 nRow > nCol的情况
 int NCUtils::getRank(byte** matrix, int nRow, int nCol) {
-    unsigned int **M = new unsigned int *[nRow];
+    GFType **M = new GFType *[nRow];
     for (int i = 0; i < nRow; ++i) {
-        M[i] = new unsigned int[nCol];
+        M[i] = new GFType[nCol];
     }
 
-    //unsigned int test = 0;
+    //GFType test = 0;
     for (int i = 0; i < nRow; i++) {
         for (int j = 0; j < nCol; j++) {
             //test = pData[i * nCol + j];
@@ -182,7 +195,7 @@ int NCUtils::getRank(byte** matrix, int nRow, int nCol) {
 
         for (int j = i + 1; j < nRow; j++) {
             // Now, the main element must be nonsingular.
-            unsigned int temp = gf.div(M[j][yPos], M[i][yPos]);
+            GFType temp = gf.div(M[j][yPos], M[i][yPos]);
             for (int z = 0; z < nCol; z++) {
                 M[j][z] = (byte) (gf.add(M[j][z],
                         gf.mul(temp, M[i][z])));
@@ -204,7 +217,7 @@ int NCUtils::getRank(byte** matrix, int nRow, int nCol) {
             }
         }
         for (int k = 0; k < i; k++) {
-            unsigned int temp = gf.div(M[k][yPos], M[i][yPos]);
+            GFType temp = gf.div(M[k][yPos], M[i][yPos]);
             for (int z = 0; z < nCol; z++) {
                 M[k][z] = (byte) (gf.add(M[k][z],
                         gf.mul(temp, M[i][z])));
@@ -237,10 +250,10 @@ int NCUtils::getRank(byte** matrix, int nRow, int nCol) {
     return nRank;
 }
 
-vector<vector<byte>> NCUtils::generateRandMatrix(int row, int col)
+vbArray NCUtils::generateRandMatrix(int row, int col)
 {
 	
-	vector<vector<byte>> result(row);
+	vbArray result(row);
 	for (auto& v : result) {
 		v.resize(col);
 	}
@@ -263,7 +276,9 @@ vector<vector<byte>> NCUtils::generateRandMatrix(int row, int col)
 	return result;
 }
 
-int NCUtils::getRank(vector<vector<byte>> matrix)
+
+
+int NCUtils::getRank(vbArray matrix)
 {
 	int row = matrix.size();
 	if (row == 0) {
@@ -286,9 +301,53 @@ int NCUtils::getRank(vector<vector<byte>> matrix)
 	for (int i = 0; i < row; i++) {
 		delete[] mat[i];
 	}
-	delete mat;
+	delete[] mat;
 
 	return rank;
 }
 
 
+vbArray NCUtils::inverse(vbArray& matrix) {
+	int row = matrix.size();
+	int col = matrix[0].size();
+	byte** mat = new byte*[row];
+	for (int i = 0; i < row; i++) {
+		mat[i] = new byte[col];
+	}
+
+	for (int i = 0; i < row; i++) {
+		for (int j = 0; j < col; j++) {
+			mat[i][j] = matrix[i][j];
+		}
+	}
+
+
+	auto ret = inverse(mat, row);
+	if (ret == NULL) {
+		return vbArray();
+	}
+
+	vbArray vb(row);
+	for (auto& v : vb) {
+		v.resize(row);
+	}
+	for (int i = 0; i < row; i++)
+	{
+		for (int j = 0; j < row; j++) {
+			vb[i][j] = ret[i][j];
+		}
+	}
+
+
+
+	// 释放内存
+	for (int i = 0; i < row; i++) {
+		delete[] mat[i];
+		delete[] ret[i];
+	}
+	delete[] mat;
+	delete[] ret;
+
+	return vb;
+
+}
