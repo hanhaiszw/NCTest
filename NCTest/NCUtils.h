@@ -8,7 +8,7 @@
 #include "GF.h"
 #include <vector>
 using std::vector;
-
+#include <random>
 //C++中 没有byte关键字
 typedef unsigned char byte;
 typedef vector<vector<byte>> vbArray;
@@ -31,6 +31,8 @@ public:
 	static vbArray generateRandMatrix(int row, int col);
 	static int getRank(vbArray matrix);
 	static vbArray inverse(vbArray& matrix);
+
+	static void test10();
 };
 
 

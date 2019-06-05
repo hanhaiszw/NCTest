@@ -8,7 +8,7 @@
 #include "NCUtils.h"
 #include <time.h>
 #include <stdlib.h>
-
+#include <iostream>
 #define random(x) (rand()%x)
 // 有限域运算库
 GF NCUtils::gf;
@@ -49,11 +49,18 @@ byte** NCUtils::inverse(byte** matrix, int nK) {
 	/************************************************************************/
 	/* Start to get the inverse matrix!                                     */
 	/************************************************************************/
-	int **N = new int*[nK];
+	/*int **N = new int*[nK];
 	for (int i = 0; i < nK; i++)
 	{
 		N[i] = new int[2 * nK];
 	}
+*/
+
+	vector<vector<int>> N(nK);
+	for (auto& v : N) {
+		v.resize(2 * nK);
+	}
+
 
 	// 一半写入原矩阵   一半写入单位矩阵
 	for (int i = 0; i < nK; i++)
@@ -145,10 +152,7 @@ byte** NCUtils::inverse(byte** matrix, int nK) {
 		}
 	}
 
-	for (int i = 0; i < nK; i++) {
-		delete[] N[i];
-	}
-	delete[] N;
+	
 
 	return result;
 }
@@ -274,6 +278,18 @@ vbArray NCUtils::generateRandMatrix(int row, int col)
 	}
 
 	return result;
+}
+
+
+void NCUtils::test10() {
+	//#include <random>
+	std::mt19937 rng;
+	rng.seed(std::random_device()());
+	/*std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 6);
+	std::cout << dist6(rng) << std::endl;*/
+
+	std::uniform_real_distribution<double> distribution(0, 1);
+	std::cout << distribution(rng) << std::endl;
 }
 
 
